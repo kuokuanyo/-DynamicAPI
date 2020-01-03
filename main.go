@@ -59,18 +59,76 @@ func main() {
 	router.HandleFunc("/v1/opendb/{sql}", ConnectDb).Methods("POST")
 	router.HandleFunc("/v1/getalltables", GetAlltables).Methods("GET")
 	router.HandleFunc("/v1/tableinformation/{tablename}", GetTableInformation).Methods("GET")
+	router.HandleFunc("/getall/{tablename}", GetAllData).Methods("GET")
 
 	//伺服器連線
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		log.Fatal(err)
 	}
+
+}
+
+//GetAllData 取得所有資料
+func GetAllData(w http.ResponseWriter, r *http.Request) {
+	//資料放置
+	var data = make(map[string]interface{})
+	var results []Result
+	var message Error
+
+	//印出url參數
+	params := mux.Vars(r)
+
+	//取得資料表資訊的指令
+	describetable := fmt.Sprintf("DESCRIBE %s", params["tablename"])
+	//將執行的命令
+	getalldata := fmt.Sprintf("select * from %s", params["tablename"])
+
+	//取得資料表資訊
+	rows, err := DB.Raw(describetable).Rows()
+	if err != nil {
+		message.Message = "Server(database) error!"
+		SendError(w, http.StatusInternalServerError, message)
+		return
+	}
+	for rows.Next() {
+		var result Result
+		rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
+		results = append(results, result)
+	}
+
+	//取得所有資料
+	rows, err = DB.Raw(getalldata).Rows()
+	for rows.Next() {
+
+		var index []string
+		var value = make([]interface{}, len(results))
+
+		//取得資料表
+		for _, result := range results {
+			index = append(index, result.Field)
+		}
+
+		rows.Scan(value...)
+		for i := 0; i < len(index); i++ {
+			data[index[i]] = value[i]
+		}
+		fmt.Println(data)
+		SendSuccess(w, data)
+	}
 }
 
 //GetTableInformation 取得資料表資訊
+//@Summary 取得資料表資訊
+//@Tags Table Information
+//@Accept json
+//@Produce json
+//@Success 200 {object} []string "Successfully"
+//@Failure 500 {object} models.Error "Internal Server Error"
+//@Router /v1/tableinformation/{tablename} [get]
 func GetTableInformation(w http.ResponseWriter, r *http.Request) {
 	var (
-		results []Result
 		message Error
+		results []Result
 	)
 
 	//印出url參數
