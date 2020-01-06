@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -19,9 +20,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mssql"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
-
-//DB 資料庫引擎
-var DB *gorm.DB
 
 //Result 資料表結構
 type Result struct {
@@ -59,7 +57,7 @@ func main() {
 	router.HandleFunc("/v1/opendb/{sql}", ConnectDb).Methods("POST")
 	router.HandleFunc("/v1/getalltables", GetAlltables).Methods("GET")
 	router.HandleFunc("/v1/tableinformation/{tablename}", GetTableInformation).Methods("GET")
-	router.HandleFunc("/getall/{tablename}", GetAllData).Methods("GET")
+	router.HandleFunc("/v1/getall/{tablename}", GetAllData).Methods("GET")
 
 	//伺服器連線
 	if err := http.ListenAndServe(":8080", router); err != nil {
@@ -69,19 +67,51 @@ func main() {
 }
 
 //GetAllData 取得所有資料
+//@Summary 取得所有資料
+//@Tags Table CRUD
+//@Accept json
+//@Produce json
+//@Param information body DBinformation false "資料庫資訊"
+//@Param tablename path string true "資料庫名稱"
+//@Param col query string false "挑選欄位"
+//@Success 200 {object} []map[string]interface{} "Successfully"
+//@Failure 500 {object} models.Error "Internal Server Error"
+//@Router /v1/getsll/{tablename} [get]
 func GetAllData(w http.ResponseWriter, r *http.Request) {
-	//資料放置
-	var data = make(map[string]interface{})
-	var results []Result
-	var message Error
 
-	//印出url參數
-	params := mux.Vars(r)
+	var (
+		information   DBinformation
+		datas         []map[string]interface{} //資料放置
+		results       []Result                 //資料表所有欄位資訊
+		message       Error
+		index         []string //欄位名稱
+		coltype       []string //欄位類型
+		getdata       = "select "
+		params        = mux.Vars(r)                                     //印出url參數
+		describetable = fmt.Sprintf("DESCRIBE %s", params["tablename"]) //取得資料表資訊的指令
+	)
 
-	//取得資料表資訊的指令
-	describetable := fmt.Sprintf("DESCRIBE %s", params["tablename"])
-	//將執行的命令
-	getalldata := fmt.Sprintf("select * from %s", params["tablename"])
+	//decode
+	json.NewDecoder(r.Body).Decode(&information)
+
+	//完整的資料格式: [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
+	MysqlDataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
+		information.UserName,
+		information.Password,
+		information.Host,
+		information.Port,
+		information.Database)
+
+	//開啟資料庫連線
+	DB, err := gorm.Open("mysql", MysqlDataSourceName)
+	if err != nil {
+		message.Message = "Connect Database failed"
+		SendError(w, http.StatusInternalServerError, message)
+		return
+	}
+
+	DB.DB().SetMaxIdleConns(information.MaxIdle)
+	DB.DB().SetMaxOpenConns(information.MaxOpen)
 
 	//取得資料表資訊
 	rows, err := DB.Raw(describetable).Rows()
@@ -90,31 +120,68 @@ func GetAllData(w http.ResponseWriter, r *http.Request) {
 		SendError(w, http.StatusInternalServerError, message)
 		return
 	}
+	//取得欄位的資訊
 	for rows.Next() {
 		var result Result
 		rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
-		results = append(results, result)
+		value := r.URL.Query()["col"]
+		if len(value) > 0 {
+			for i := 0; i < len(value); i++ {
+				if value[i] == result.Field {
+					results = append(results, result)
+				}
+			}
+		} else if len(value) == 0 {
+			results = append(results, result)
+		}
+	}
+
+	//設定變數
+	var (
+		value     = make([]string, len(results))
+		valuePtrs = make([]interface{}, len(results))
+	)
+
+	//資料表資訊
+	for i, result := range results {
+		index = append(index, result.Field)
+		coltype = append(coltype, result.Type)
+		valuePtrs[i] = &value[i] //因Scan需要使用指標(valuePtrs)
+		if i == len(results)-1 {
+			getdata += fmt.Sprintf("%s from %s", result.Field, params["tablename"])
+		} else {
+			getdata += fmt.Sprintf("%s, ", result.Field)
+		}
 	}
 
 	//取得所有資料
-	rows, err = DB.Raw(getalldata).Rows()
-	for rows.Next() {
-
-		var index []string
-		var value = make([]interface{}, len(results))
-
-		//取得資料表
-		for _, result := range results {
-			index = append(index, result.Field)
-		}
-
-		rows.Scan(value...)
-		for i := 0; i < len(index); i++ {
-			data[index[i]] = value[i]
-		}
-		fmt.Println(data)
-		SendSuccess(w, data)
+	rows, err = DB.Raw(getdata).Rows()
+	if err != nil {
+		message.Message = "Server(database) error!"
+		SendError(w, http.StatusInternalServerError, message)
+		return
 	}
+	for rows.Next() {
+		var data = make(map[string]interface{})
+		rows.Scan(valuePtrs...)
+		for i := range index {
+			//辨別資料庫欄位類別
+			if strings.Contains(coltype[i], "varchar") {
+				data[index[i]] = value[i] //欄位型態為string
+			} else if strings.Contains(coltype[i], "int") {
+				data[index[i]], err = strconv.Atoi(value[i]) //欄位型態為int
+				if err != nil {
+					message.Message = "Server(database) error!"
+					SendError(w, http.StatusInternalServerError, message)
+					return
+				}
+			} else {
+				data[index[i]] = value[i]
+			}
+		}
+		datas = append(datas, data)
+	}
+	SendSuccess(w, datas)
 }
 
 //GetTableInformation 取得資料表資訊
@@ -122,17 +189,40 @@ func GetAllData(w http.ResponseWriter, r *http.Request) {
 //@Tags Table Information
 //@Accept json
 //@Produce json
+//@Param tablename path string true "資料庫名稱"
+//@Param information body DBinformation false "資料庫資訊"
 //@Success 200 {object} []string "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
 //@Router /v1/tableinformation/{tablename} [get]
 func GetTableInformation(w http.ResponseWriter, r *http.Request) {
 	var (
-		message Error
-		results []Result
+		information DBinformation
+		message     Error
+		results     []Result
+		params      = mux.Vars(r) //印出url參數
 	)
 
-	//印出url參數
-	params := mux.Vars(r)
+	//decode
+	json.NewDecoder(r.Body).Decode(&information)
+
+	//完整的資料格式: [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
+	MysqlDataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
+		information.UserName,
+		information.Password,
+		information.Host,
+		information.Port,
+		information.Database)
+
+	//開啟資料庫連線
+	DB, err := gorm.Open("mysql", MysqlDataSourceName)
+	if err != nil {
+		message.Message = "Connect Database failed"
+		SendError(w, http.StatusInternalServerError, message)
+		return
+	}
+
+	DB.DB().SetMaxIdleConns(information.MaxIdle)
+	DB.DB().SetMaxOpenConns(information.MaxOpen)
 
 	//指令
 	describetable := fmt.Sprintf("DESCRIBE %s", params["tablename"])
@@ -157,14 +247,38 @@ func GetTableInformation(w http.ResponseWriter, r *http.Request) {
 //@Tags Table Information
 //@Accept json
 //@Produce json
+//@Param information body DBinformation false "資料庫資訊"
 //@Success 200 {object} []string "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
 //@Router /v1/getalltables [get]
 func GetAlltables(w http.ResponseWriter, r *http.Request) {
 	var (
-		tablenames []string
-		message    Error
+		tablenames  []string
+		information DBinformation
+		message     Error
 	)
+
+	//decode
+	json.NewDecoder(r.Body).Decode(&information)
+
+	//完整的資料格式: [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
+	MysqlDataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
+		information.UserName,
+		information.Password,
+		information.Host,
+		information.Port,
+		information.Database)
+
+	//開啟資料庫連線
+	DB, err := gorm.Open("mysql", MysqlDataSourceName)
+	if err != nil {
+		message.Message = "Connect Database failed"
+		SendError(w, http.StatusInternalServerError, message)
+		return
+	}
+
+	DB.DB().SetMaxIdleConns(information.MaxIdle)
+	DB.DB().SetMaxOpenConns(information.MaxOpen)
 
 	//查詢單行
 	//func (s *DB) Pluck(column string, value interface{}) *DB
@@ -177,7 +291,7 @@ func GetAlltables(w http.ResponseWriter, r *http.Request) {
 	SendSuccess(w, tablenames)
 }
 
-//ConnectDb 連接資料庫
+//ConnectDb 測試是否能連接資料庫
 //@Summary 連接資料庫
 //@Tags Connect Database(Must be connected first)
 //@Accept json
@@ -190,15 +304,12 @@ func GetAlltables(w http.ResponseWriter, r *http.Request) {
 func ConnectDb(w http.ResponseWriter, r *http.Request) {
 	var (
 		information DBinformation
-		err         error
 		message     Error
+		params      = mux.Vars(r) //印出url參數
 	)
 
 	//decode
 	json.NewDecoder(r.Body).Decode(&information)
-
-	//印出url參數
-	params := mux.Vars(r)
 
 	switch strings.ToLower(params["sql"]) {
 	case "mysql":
@@ -211,9 +322,9 @@ func ConnectDb(w http.ResponseWriter, r *http.Request) {
 			information.Database)
 
 		//開啟資料庫連線
-		DB, err = gorm.Open("mysql", MysqlDataSourceName)
+		DB, err := gorm.Open("mysql", MysqlDataSourceName)
 		if err != nil {
-			message.Message = "Server(database) error!"
+			message.Message = "Connect Database failed"
 			SendError(w, http.StatusInternalServerError, message)
 			return
 		}
@@ -230,9 +341,9 @@ func ConnectDb(w http.ResponseWriter, r *http.Request) {
 			information.Port,
 			information.Database)
 
-		DB, err = gorm.Open("mssql", MssqlDataSourceName)
+		DB, err := gorm.Open("mssql", MssqlDataSourceName)
 		if err != nil {
-			message.Message = "Server(database) error!"
+			message.Message = "Connect Database failed"
 			SendError(w, http.StatusInternalServerError, message)
 			return
 		}
