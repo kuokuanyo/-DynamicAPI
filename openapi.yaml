@@ -1,0 +1,315 @@
+openapi: 3.0.0
+info:
+  description: Define an API
+  title: Restful API
+  version: 1.0.0
+paths:
+  "/opendb/{sql}":
+    post:
+      tags:
+        - Connect Database(Must be connected first)
+      summary: 連接資料庫
+      parameters:
+        - description: 資料庫引擎
+          name: sql
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 
+              "mysql or mssql"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/models.DBinformation"
+        description: 資料庫資訊
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "Successfully Connect Database"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+              example: 
+                "message": "Connect Database failed"
+              
+  "/getalltables":
+    get:
+      tags:
+        - Table Information
+      summary: 取得所有資料表
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.object"
+              example: "列出所有資料表"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+              example: 
+                "message": "資料庫發生錯誤"
+  
+  "/tableinformation/{tablename}":
+    get:
+      tags:
+        - Table Information
+      summary: 取得資料表資訊
+      parameters:
+        - description: 資料表名稱
+          name: tablename
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "peoples"
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.object"
+              example:
+                Field:
+                  "欄位名稱"
+                Type:
+                  "欄位類型"                
+                Null:
+                  "是否允許Null"
+                Key:
+                  "key類型"
+                Default:
+                  "預設值"
+                Extra: 
+                  "額外資訊"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+              example:
+                message: "資料庫發生錯誤"
+                
+  "/addvalue/{tablename}":
+    post:
+      tags:
+        - Table CRUD
+      summary: 加入數值至資料表
+      parameters:
+        - description: 資料表名稱
+          name: tablename
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "peples"
+        - description: "key1,123456(colname, value)"
+          name: value
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+  
+  "/getsll/{tablename}":
+    get:
+      tags:
+        - Table CRUD
+      summary: 取得所有資料
+      parameters:
+        - description: 資料表名稱
+          name: tablename
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: 挑選欄位
+          name: col
+          in: query
+          schema:
+            type: array
+            items: {}
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.object"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+  "/getsome/{tablename}":
+    get:
+      tags:
+        - Table CRUD
+      summary: 取得部分資料
+      parameters:
+        - description: 資料表名稱
+          name: tablename
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: 挑選欄位
+          name: col
+          in: query
+          schema:
+            type: array
+            items: {}
+        - description: 選擇條件
+          name: where
+          in: query
+          schema:
+            type: array
+            items: {}
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.object"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+  
+  
+  "/update/{tablename}":
+    put:
+      tags:
+        - Table CRUD
+      summary: 更新資料表數值
+      parameters:
+        - description: 資料表名稱
+          name: tablename
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: 更新的欄位數值
+          name: set
+          in: query
+          schema:
+            type: array
+            items: {}
+        - description: 被更新的欄位條件
+          name: where
+          in: query
+          schema:
+            type: array
+            items: {}
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+    delete:
+      tags:
+        - Table CRUD
+      summary: 刪除資料表數值
+      parameters:
+        - description: 資料表名稱
+          name: tablename
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: 被刪除的欄位條件
+          name: where
+          in: query
+          schema:
+            type: array
+            items: {}
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+servers:
+  - url: http://localhost:8080/v1
+components:
+  schemas:
+    models.DBinformation:
+      type: object
+      properties:
+        database:
+          type: string
+          example: 資料庫
+        host:
+          type: string
+          example: ip位址
+        maxIdle:
+          type: integer
+          example: 最大連接池
+        maxOpen:
+          type: integer
+          example: 最大可同時開啟數量
+        password:
+          type: string
+          example: 密碼
+        port:
+          type: string
+          example: 端
+        userName:
+          type: string
+          example: 使用者名稱
+    models.Error:
+      type: object
+      properties:
+        message:
+          type: string
+    models.object:
+      type: object
