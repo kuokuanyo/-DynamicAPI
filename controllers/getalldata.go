@@ -22,7 +22,7 @@ import (
 //@Param col query array false "挑選欄位"
 //@Success 200 {object} models.object "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/getsll/{tablename} [get]
+//@Router /v1/getall/{tablename} [get]
 func (c Controller) GetAllData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -57,7 +57,6 @@ func (c Controller) GetAllData() http.HandlerFunc {
 			if err != nil {
 				message.Message = "Scan時發生錯誤"
 				utils.SendError(w, http.StatusInternalServerError, message)
-				fmt.Println(err)
 				return
 			}
 			queryvalue := r.URL.Query()["col"]

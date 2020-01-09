@@ -61,27 +61,27 @@ func (c Controller) ConnectDb() http.HandlerFunc {
 			}
 
 			utils.SendSuccess(w, "Successfully Connect Database")
-			/*
-				case "mssql":
-					MssqlDataSourceName := fmt.Sprintf("sqlserver://%s:%s@%s:%s? database=%s",
-						information.UserName,
-						information.Password,
-						information.Host,
-						information.Port,
-						information.Database)
 
-					DB, err := gorm.Open("mssql", MssqlDataSourceName)
-					if err != nil {
-						message.Message = "Connect Database failed"
-						utils.SendError(w, http.StatusInternalServerError, message)
-						return
-					}
+		case "mssql":
+			MssqlDataSourceName := fmt.Sprintf("sqlserver://%s:%s@%s:%s? database=%s",
+				information.UserName,
+				information.Password,
+				information.Host,
+				information.Port,
+				information.Database)
 
-					DB.DB().SetMaxIdleConns(information.MaxIdle)
-					DB.DB().SetMaxOpenConns(information.MaxOpen)
+			DB, err = gorm.Open("mssql", MssqlDataSourceName)
+			if err != nil {
+				message.Message = "Connect Database failed"
+				utils.SendError(w, http.StatusInternalServerError, message)
+				return
+			}
 
-					utils.SendSuccess(w, "Successfully Connect Database")
-			*/
+			DB.DB().SetMaxIdleConns(information.MaxIdle)
+			DB.DB().SetMaxOpenConns(information.MaxOpen)
+
+			utils.SendSuccess(w, "Successfully Connect Database")
+
 		}
 	}
 }

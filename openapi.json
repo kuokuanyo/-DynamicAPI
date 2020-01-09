@@ -167,11 +167,14 @@
             "example": "peples"
           },
           {
-            "description": "key1,123456(colname, value)",
+            "description": "填入數值(colname,value)",
             "name": "value",
             "in": "query",
             "schema": {
               "type": "array",
+              "example": [
+                "key1,123456"
+              ],
               "items": {
                 "type": "string"
               }
@@ -186,7 +189,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "example": "Successfully Add Value"
                 }
               }
             }
@@ -197,6 +201,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/models.Error"
+                },
+                "example": {
+                  "message": "資料庫發生錯誤"
                 }
               }
             }
@@ -204,7 +211,7 @@
         }
       }
     },
-    "/getsll/{tablename}": {
+    "/getall/{tablename}": {
       "get": {
         "tags": [
           "Table CRUD"
@@ -218,7 +225,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "peoples"
           },
           {
             "description": "挑選欄位",
@@ -226,8 +234,15 @@
             "in": "query",
             "schema": {
               "type": "array",
-              "items": {}
-            }
+              "example": [
+                "key1"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
           }
         ],
         "responses": {
@@ -237,6 +252,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/models.object"
+                },
+                "example": {
+                  "欄位名稱": "欄位數值"
                 }
               }
             }
@@ -247,6 +265,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/models.Error"
+                },
+                "example": {
+                  "message": "資料庫發生錯誤"
                 }
               }
             }
@@ -268,7 +289,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "peoples"
           },
           {
             "description": "挑選欄位",
@@ -276,17 +298,31 @@
             "in": "query",
             "schema": {
               "type": "array",
-              "items": {}
-            }
+              "example": [
+                "key1"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
           },
           {
-            "description": "選擇條件",
+            "description": "選擇條件(colname,value)",
             "name": "where",
             "in": "query",
             "schema": {
               "type": "array",
-              "items": {}
-            }
+              "example": [
+                "key1,123456"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
           }
         ],
         "responses": {
@@ -296,6 +332,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/models.object"
+                },
+                "example": {
+                  "欄位名稱": "欄位數值"
                 }
               }
             }
@@ -306,6 +345,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/models.Error"
+                },
+                "example": {
+                  "message": "資料庫發生錯誤"
                 }
               }
             }
@@ -327,25 +369,40 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "peoples"
           },
           {
-            "description": "更新的欄位數值",
+            "description": "更新的欄位數值(colname,value)",
             "name": "set",
             "in": "query",
             "schema": {
               "type": "array",
-              "items": {}
-            }
+              "example": [
+                "key1,123456"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
           },
           {
-            "description": "被更新的欄位條件",
+            "description": "被更新的欄位條件(colname,value)",
             "name": "where",
             "in": "query",
             "schema": {
               "type": "array",
-              "items": {}
-            }
+              "example": [
+                "key2,223456"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
           }
         ],
         "responses": {
@@ -355,7 +412,8 @@
               "application/json": {
                 "schema": {
                   "type": "string"
-                }
+                },
+                "example": "Successfully Update Value"
               }
             }
           },
@@ -365,12 +423,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/models.Error"
+                },
+                "example": {
+                  "message": "資料庫發生錯誤"
                 }
               }
             }
           }
         }
-      },
+      }
+    },
+    "/delete/{tablename}": {
       "delete": {
         "tags": [
           "Table CRUD"
@@ -384,16 +447,24 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "peoples"
           },
           {
-            "description": "被刪除的欄位條件",
+            "description": "被刪除的欄位條件(colname,value)",
             "name": "where",
             "in": "query",
             "schema": {
               "type": "array",
-              "items": {}
-            }
+              "example": [
+                "key1,123456"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
           }
         ],
         "responses": {
@@ -403,7 +474,8 @@
               "application/json": {
                 "schema": {
                   "type": "string"
-                }
+                },
+                "example": "Successfully Delete Value"
               }
             }
           },
@@ -413,6 +485,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/models.Error"
+                },
+                "example": {
+                  "message": "資料庫發生錯誤"
                 }
               }
             }
@@ -453,7 +528,7 @@
           },
           "port": {
             "type": "string",
-            "example": "端"
+            "example": "端點"
           },
           "userName": {
             "type": "string",

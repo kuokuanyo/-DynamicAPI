@@ -118,11 +118,12 @@ paths:
           schema:
             type: string
           example: "peples"
-        - description: "key1,123456(colname, value)"
+        - description: 填入數值(colname,value)
           name: value
           in: query
           schema:
             type: array
+            example: ["key1,123456"]
             items:
               type: string
           style: form
@@ -134,14 +135,18 @@ paths:
             application/json:
               schema:
                 type: string
+                example: 
+                  "Successfully Add Value"
         "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/models.Error"
-  
-  "/getsll/{tablename}":
+              example:
+                message: "資料庫發生錯誤"
+                
+  "/getall/{tablename}":
     get:
       tags:
         - Table CRUD
@@ -153,12 +158,17 @@ paths:
           required: true
           schema:
             type: string
+          example: peoples
         - description: 挑選欄位
           name: col
           in: query
           schema:
             type: array
-            items: {}
+            example: ["key1"]
+            items:
+              type: string
+          style: form
+          explode: true
       responses:
         "200":
           description: Successfully
@@ -166,12 +176,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/models.object"
+              example: 
+                欄位名稱: "欄位數值"
         "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/models.Error"
+              example:
+                message: "資料庫發生錯誤"
   "/getsome/{tablename}":
     get:
       tags:
@@ -184,18 +198,27 @@ paths:
           required: true
           schema:
             type: string
+          example: peoples
         - description: 挑選欄位
           name: col
           in: query
           schema:
             type: array
-            items: {}
-        - description: 選擇條件
+            example: ["key1"]
+            items:
+              type: string
+          style: form
+          explode: true
+        - description: 選擇條件(colname,value)
           name: where
           in: query
           schema:
             type: array
-            items: {}
+            example: ["key1,123456"]
+            items:
+              type: string
+          style: form
+          explode: true
       responses:
         "200":
           description: Successfully
@@ -203,13 +226,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/models.object"
+              example: 
+                欄位名稱: "欄位數值"
         "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/models.Error"
-  
+              example:
+                message: "資料庫發生錯誤"
   
   "/update/{tablename}":
     put:
@@ -223,18 +249,27 @@ paths:
           required: true
           schema:
             type: string
-        - description: 更新的欄位數值
+          example: peoples
+        - description: 更新的欄位數值(colname,value)
           name: set
           in: query
           schema:
             type: array
-            items: {}
-        - description: 被更新的欄位條件
+            example: ["key1,123456"]
+            items:
+              type: string
+          style: form
+          explode: true
+        - description: 被更新的欄位條件(colname,value)
           name: where
           in: query
           schema:
             type: array
-            items: {}
+            example: ["key2,223456"]
+            items:
+              type: string
+          style: form
+          explode: true
       responses:
         "200":
           description: Successfully
@@ -242,12 +277,18 @@ paths:
             application/json:
               schema:
                 type: string
+              example: 
+                  "Successfully Update Value"
         "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/models.Error"
+              example:
+                message: "資料庫發生錯誤"
+                
+  "/delete/{tablename}":
     delete:
       tags:
         - Table CRUD
@@ -259,12 +300,17 @@ paths:
           required: true
           schema:
             type: string
-        - description: 被刪除的欄位條件
+          example: peoples
+        - description: 被刪除的欄位條件(colname,value)
           name: where
           in: query
           schema:
             type: array
-            items: {}
+            example: ["key1,123456"]
+            items:
+              type: string
+          style: form
+          explode: true
       responses:
         "200":
           description: Successfully
@@ -272,12 +318,16 @@ paths:
             application/json:
               schema:
                 type: string
+              example: 
+                  "Successfully Delete Value"
         "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/models.Error"
+              example:
+                message: "資料庫發生錯誤"
 servers:
   - url: http://localhost:8080/v1
 components:
@@ -302,7 +352,7 @@ components:
           example: 密碼
         port:
           type: string
-          example: 端
+          example: 端點
         userName:
           type: string
           example: 使用者名稱
