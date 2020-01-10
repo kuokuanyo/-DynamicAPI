@@ -30,8 +30,7 @@ func (c Controller) AddValue() http.HandlerFunc {
 			describetable = fmt.Sprintf("DESCRIBE %s", params["tablename"]) //執行資料庫命令
 			queryvalue    = r.URL.Query()["value"]
 			index         []string //欄位名稱
-			value         []interface{}
-			insertvalue   = fmt.Sprintf("INSERT INTO %s(", params["tablename"])
+			value         []string
 			Repo          repository.Repository
 		)
 
@@ -72,27 +71,18 @@ func (c Controller) AddValue() http.HandlerFunc {
 
 		//處理sql語法
 		//加入欄位
-		for i := 0; i < len(index); i++ {
-			if i == len(index)-1 {
-				insertvalue += fmt.Sprintf("%s) values (", index[i])
-			} else {
-				insertvalue += fmt.Sprintf("%s, ", index[i])
-			}
-		}
-		//新增占位符
-		for i := 0; i < len(index); i++ {
-			if i == len(index)-1 {
-				insertvalue += "?)"
-			} else {
-				insertvalue += "?, "
-			}
-		}
+		slicetostringIndex := strings.Join(index, ", ")
+		slicetostringValue := strings.Join(value, `"," `)
 
-		if err = Repo.Execbyvalue(DB, insertvalue, value); err != nil {
+		insertvalue := fmt.Sprintf(`INSERT INTO %s(%s) VALUES("%s")`, params["tablename"], slicetostringIndex, slicetostringValue)
+		fmt.Println(insertvalue)
+
+		if err = Repo.Exec(DB, insertvalue); err != nil {
 			message.Message = "插入資料時發生錯誤"
 			utils.SendError(w, http.StatusInternalServerError, message)
 			return
 		}
 		utils.SendSuccess(w, "Successfully Add Value")
+
 	}
 }

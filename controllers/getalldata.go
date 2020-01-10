@@ -4,10 +4,10 @@ import (
 	models "DynamicAPI/model"
 	"DynamicAPI/repository"
 	"DynamicAPI/utils"
+	"strconv"
 
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -28,9 +28,8 @@ func (c Controller) GetAllData() http.HandlerFunc {
 		var (
 			datas         []map[string]interface{} //資料放置
 			message       models.Error
-			index         []string //欄位名稱
-			coltype       []string //欄位類型
-			getdata       = "select "
+			index         []string                                          //欄位名稱
+			coltype       []string                                          //欄位類型
 			params        = mux.Vars(r)                                     //印出url參數
 			describetable = fmt.Sprintf("DESCRIBE %s", params["tablename"]) //取得資料表資訊的指令
 			Repo          repository.Repository
@@ -76,24 +75,21 @@ func (c Controller) GetAllData() http.HandlerFunc {
 		//設定變數
 		var (
 			value     = make([]string, len(index))
-			valuePtrs = make([]interface{}, len(index))
+			valuePtrs = make([]interface{}, len(index)) //因Scan需要使用指標(valuePtrs)
 		)
 
-		for x := range index {
-			if x == len(index)-1 {
-				getdata += fmt.Sprintf("%s from %s", index[x], params["tablename"])
-				valuePtrs[x] = &value[x] //因Scan需要使用指標(valuePtrs)
-			} else {
-				getdata += fmt.Sprintf("%s, ", index[x])
-				valuePtrs[x] = &value[x] //因Scan需要使用指標(valuePtrs)
-			}
+		for i := 0; i < len(index); i++ {
+			valuePtrs[i] = &value[i] //因Scan需要使用指標(valuePtrs)
 		}
+
+		//處理sql命令
+		slicetostringIndex := strings.Join(index, ", ")
+		getdata := fmt.Sprintf("select %s from %s", slicetostringIndex, params["tablename"])
 
 		//取得所有資料
 		rows, err = Repo.RawData(DB, getdata)
 		if err != nil {
 			message.Message = "取得資料時發生錯誤"
-			fmt.Println(err)
 			utils.SendError(w, http.StatusInternalServerError, message)
 			return
 		}

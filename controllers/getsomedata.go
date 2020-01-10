@@ -33,7 +33,6 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 			params         = mux.Vars(r)
 			describetable  = fmt.Sprintf("DESCRIBE %s", params["tablename"]) //執行資料庫命令
 			condition      = make(map[string]interface{})
-			getdata        = "select "
 			index          []string //欄位名稱
 			coltype        []string //欄位類型
 			queryvalue     = r.URL.Query()["col"]
@@ -90,17 +89,14 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 			value     = make([]string, len(index))
 			valuePtrs = make([]interface{}, len(index))
 		)
-
-		//sql命令
 		for i := range index {
-			if i == len(index)-1 {
-				getdata += fmt.Sprintf("%s from %s ", index[i], params["tablename"])
-				valuePtrs[i] = &value[i] //因Scan需要使用指標(valuePtrs)
-			} else {
-				getdata += fmt.Sprintf("%s, ", index[i])
-				valuePtrs[i] = &value[i] //因Scan需要使用指標(valuePtrs)
-			}
+			valuePtrs[i] = &value[i] //因Scan需要使用指標(valuePtrs)
 		}
+
+		//處理sql命令
+		slicetostringIndex := strings.Join(index, ", ")
+		getdata := fmt.Sprintf("select %s from %s ", slicetostringIndex, params["tablename"])
+
 		if len(condition) > 0 {
 			i := 0
 			for x, y := range condition {
@@ -112,7 +108,7 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 				}
 			}
 		}
-
+		
 		//取得資料
 		rows, err = Repo.RawData(DB, getdata)
 		if err != nil {

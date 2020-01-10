@@ -39,6 +39,7 @@ func main() {
 	router.HandleFunc("/v1/delete/{tablename}", controller.DeleteValue()).Methods("DELETE")
 	//合併表
 	router.HandleFunc("/v1/jointable/{table1}/{table2}", controller.JoinTable()).Methods("GET")
+	router.HandleFunc("/v1/jointable/{table1}/{table2}/{uuid}", controller.GetTableByUuid()).Methods("GET")
 
 	//伺服器連線
 	if err := http.ListenAndServe(":8080", router); err != nil {
