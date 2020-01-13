@@ -10,7 +10,11 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	uuid "github.com/satori/go.uuid"
 )
+
+//Identity 利用uuid建立新的api
+var Identity = make(map[string][]map[string]interface{})
 
 //JoinTable 合併表
 //@Summary 合併資料表
@@ -39,12 +43,13 @@ func (c Controller) JoinTable() http.HandlerFunc {
 			colType        []string
 			join           = r.URL.Query()["join"] //合併欄位
 			Repo           repository.Repository
+			err            error
 		)
 
 		//檢查資料庫是否連接
 		if DB == nil {
 			message.Message = ("資料庫未連接，請連接資料庫")
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 
@@ -52,15 +57,15 @@ func (c Controller) JoinTable() http.HandlerFunc {
 		rows, err := Repo.RawData(DB, describetable1)
 		if err != nil {
 			message.Message = "取得資料表資訊時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		for rows.Next() {
-			var result models.Result
+			var result models.MysqlResult
 			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
 			if err != nil {
 				message.Message = "Scan時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 
@@ -83,15 +88,15 @@ func (c Controller) JoinTable() http.HandlerFunc {
 		rows, err = Repo.RawData(DB, describetable2)
 		if err != nil {
 			message.Message = "取得資料表資訊時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		for rows.Next() {
-			var result models.Result
+			var result models.MysqlResult
 			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
 			if err != nil {
 				message.Message = "Scan時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 
@@ -149,7 +154,7 @@ func (c Controller) JoinTable() http.HandlerFunc {
 		if err != nil {
 			message.Message = "合併資料表時發生錯誤"
 			fmt.Println(err)
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		for rows.Next() {
@@ -162,7 +167,7 @@ func (c Controller) JoinTable() http.HandlerFunc {
 					data[col[i]], err = strconv.Atoi(value[i]) //欄位為int
 					if err != nil {
 						message.Message = "數值轉換時發生錯誤"
-						utils.SendError(w, http.StatusInternalServerError, message)
+						utils.SendError(w, http.StatusInternalServerError, message, err)
 						return
 					}
 				} else {
@@ -171,6 +176,14 @@ func (c Controller) JoinTable() http.HandlerFunc {
 			}
 			datas = append(datas, data)
 		}
+
+		//建立一組驗證的uuid
+		uuid := uuid.Must(uuid.NewV4())
+		uuidtostring := uuid.String() //convert to string
+		Identity[uuidtostring] = datas
+
+		getuuid := fmt.Sprintf("New uuid is %s", uuidtostring)
+		utils.SendSuccess(w, getuuid)
 		utils.SendSuccess(w, datas)
 	}
 }

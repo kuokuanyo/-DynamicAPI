@@ -38,11 +38,12 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 			queryvalue     = r.URL.Query()["col"]
 			conditionvalue = r.URL.Query()["where"]
 			Repo           repository.Repository
+			err            error
 		)
 		//檢查資料庫是否連接
 		if DB == nil {
 			message.Message = ("資料庫未連接，請連接資料庫")
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 
@@ -50,15 +51,15 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 		rows, err := Repo.RawData(DB, describetable)
 		if err != nil {
 			message.Message = "取得欄位資訊時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		for rows.Next() {
-			var result models.Result
+			var result models.MysqlResult
 			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
 			if err != nil {
 				message.Message = "Scan資料時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 
@@ -108,12 +109,12 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 				}
 			}
 		}
-		
+
 		//取得資料
 		rows, err = Repo.RawData(DB, getdata)
 		if err != nil {
 			message.Message = "取資料時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		for rows.Next() {
@@ -121,7 +122,7 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 			err = rows.Scan(valuePtrs...)
 			if err != nil {
 				message.Message = "Scan資料時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 			for i := range index {
@@ -132,7 +133,7 @@ func (c Controller) GetSomeData() http.HandlerFunc {
 					data[index[i]], err = strconv.Atoi(value[i]) //欄位型態為int
 					if err != nil {
 						message.Message = "數值轉換錯誤"
-						utils.SendError(w, http.StatusInternalServerError, message)
+						utils.SendError(w, http.StatusInternalServerError, message, err)
 						return
 					}
 				} else {

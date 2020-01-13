@@ -7,10 +7,11 @@ import (
 )
 
 //SendError response error
-func SendError(w http.ResponseWriter, status int, error models.Error) {
+func SendError(w http.ResponseWriter, status int, message models.Error, err error) {
 	w.WriteHeader(status)
 	//encode
-	json.NewEncoder(w).Encode(error)
+	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(err)
 }
 
 //SendSuccess response success

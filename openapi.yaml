@@ -328,6 +328,102 @@ paths:
                 $ref: "#/components/schemas/models.Error"
               example:
                 message: "資料庫發生錯誤"
+  
+  "/v1/jointable/{table1}/{table2}":
+    get:
+      tags:
+        - Join Table
+      summary: 資料表合併
+      parameters:
+        - description: 資料表名稱
+          name: table1
+          in: path
+          required: true
+          schema:
+            type: string
+          example: peoples
+        - description: 資料表名稱
+          name: table2
+          in: path
+          required: true
+          schema:
+            type: string
+          example: events
+        - description: join欄位
+          name: join
+          in: query
+          required: true
+          schema:
+            type: array
+            example: ["key1", "key2"]
+            items:
+              type: string
+        - description: table1挑選欄位
+          name: table1
+          in: query
+          schema:
+            type: array
+            example: ["bith"]
+            items:
+              type: string
+        - description: table2挑選欄位
+          name: table2
+          in: query
+          schema:
+            type: array
+            example: ["position"]
+            items:
+              type: string
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.object"
+              example: 
+                uuid: "專屬uuid"
+                欄位名稱: "欄位數值"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+              example:
+                message: "資料庫發生錯誤"
+  
+  "/v1/jointable/{uuid}":
+    get:
+      tags:
+        - Join Table
+      summary: 專屬uuid呼叫表
+      parameters:
+        - description: uuid
+          name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "bdf4bc5b-4d8b-414a-8adf-eaa02e987b7a"   
+      responses:
+        "200":
+          description: Successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.object"
+              example: 
+                欄位名稱: "欄位數值"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/models.Error"
+              example:
+                message: "資料庫發生錯誤"
+  
 servers:
   - url: http://localhost:8080/v1
 components:

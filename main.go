@@ -29,8 +29,8 @@ func main() {
 	//連接資料庫
 	router.HandleFunc("/v1/opendb/{sql}", controller.ConnectDb()).Methods("POST")
 	//資料庫資訊
-	router.HandleFunc("/v1/getalltables", controller.GetAlltables()).Methods("GET")
-	router.HandleFunc("/v1/tableinformation/{tablename}", controller.GetTableInformation()).Methods("GET")
+	router.HandleFunc("/v1/{sql}/getalltables", controller.GetAlltables()).Methods("GET")
+	router.HandleFunc("/v1/{sql}/tableinformation/{tablename}", controller.GetTableInformation()).Methods("GET")
 	//CRUD
 	router.HandleFunc("/v1/getall/{tablename}", controller.GetAllData()).Methods("GET")
 	router.HandleFunc("/v1/getsome/{tablename}", controller.GetSomeData()).Methods("GET")
@@ -39,7 +39,7 @@ func main() {
 	router.HandleFunc("/v1/delete/{tablename}", controller.DeleteValue()).Methods("DELETE")
 	//合併表
 	router.HandleFunc("/v1/jointable/{table1}/{table2}", controller.JoinTable()).Methods("GET")
-	router.HandleFunc("/v1/jointable/{table1}/{table2}/{uuid}", controller.GetTableByUuid()).Methods("GET")
+	router.HandleFunc("/v1/jointable/{uuid}", controller.GetTableByUUID()).Methods("GET")
 
 	//伺服器連線
 	if err := http.ListenAndServe(":8080", router); err != nil {

@@ -33,12 +33,13 @@ func (c Controller) GetAllData() http.HandlerFunc {
 			params        = mux.Vars(r)                                     //印出url參數
 			describetable = fmt.Sprintf("DESCRIBE %s", params["tablename"]) //取得資料表資訊的指令
 			Repo          repository.Repository
+			err           error
 		)
 
 		//檢查資料庫是否連接
 		if DB == nil {
 			message.Message = ("資料庫未連接，請連接資料庫")
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 
@@ -46,16 +47,16 @@ func (c Controller) GetAllData() http.HandlerFunc {
 		rows, err := Repo.RawData(DB, describetable)
 		if err != nil {
 			message.Message = "取得資料表資訊時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		//取得欄位的資訊
 		for rows.Next() {
-			var result models.Result
+			var result models.MysqlResult
 			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
 			if err != nil {
 				message.Message = "Scan時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 			queryvalue := r.URL.Query()["col"]
@@ -90,7 +91,7 @@ func (c Controller) GetAllData() http.HandlerFunc {
 		rows, err = Repo.RawData(DB, getdata)
 		if err != nil {
 			message.Message = "取得資料時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		for rows.Next() {
@@ -104,7 +105,7 @@ func (c Controller) GetAllData() http.HandlerFunc {
 					data[index[i]], err = strconv.Atoi(value[i]) //欄位型態為int
 					if err != nil {
 						message.Message = "數值轉換時發生錯誤"
-						utils.SendError(w, http.StatusInternalServerError, message)
+						utils.SendError(w, http.StatusInternalServerError, message, err)
 						return
 					}
 				} else {

@@ -32,12 +32,13 @@ func (c Controller) AddValue() http.HandlerFunc {
 			index         []string //欄位名稱
 			value         []string
 			Repo          repository.Repository
+			err           error
 		)
 
 		//檢查資料庫是否連接
 		if DB == nil {
 			message.Message = ("資料庫未連接，請連接資料庫")
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 
@@ -45,15 +46,15 @@ func (c Controller) AddValue() http.HandlerFunc {
 		rows, err := Repo.RawData(DB, describetable)
 		if err != nil {
 			message.Message = "取得欄位資訊時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		for rows.Next() {
-			var result models.Result
+			var result models.MysqlResult
 			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
 			if err != nil {
 				message.Message = "Scan資料時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 
@@ -79,7 +80,7 @@ func (c Controller) AddValue() http.HandlerFunc {
 
 		if err = Repo.Exec(DB, insertvalue); err != nil {
 			message.Message = "插入資料時發生錯誤"
-			utils.SendError(w, http.StatusInternalServerError, message)
+			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return
 		}
 		utils.SendSuccess(w, "Successfully Add Value")

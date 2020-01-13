@@ -13,8 +13,16 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-//DB 資料庫引擎
 var DB *gorm.DB
+
+//MssqlDB mssql引擎
+var MssqlDB *gorm.DB
+
+//MysqlDB mysql引擎
+var MysqlDB *gorm.DB
+
+//information資料庫資訊
+var information models.DBinformation
 
 //Controller struct
 type Controller struct{}
@@ -32,11 +40,10 @@ type Controller struct{}
 func (c Controller) ConnectDb() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			information models.DBinformation
-			message     models.Error
-			params      = mux.Vars(r) //印出url參數
-			err         error
-			Repo        repository.Repository
+			message models.Error
+			params  = mux.Vars(r) //印出url參數
+			err     error
+			Repo    repository.Repository
 		)
 
 		//decode
@@ -53,13 +60,15 @@ func (c Controller) ConnectDb() http.HandlerFunc {
 				information.Database)
 
 			//開啟資料庫連線
-			DB, err = Repo.ConnectDb("mysql", MysqlDataSourceName)
+			MysqlDB, err = Repo.ConnectDb("mysql", MysqlDataSourceName)
 			if err != nil {
 				message.Message = "Connect Database failed"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 
+			MysqlDB.DB().SetMaxIdleConns(information.MaxIdle)
+			MysqlDB.DB().SetMaxOpenConns(information.MaxOpen)
 			utils.SendSuccess(w, "Successfully Connect Database")
 
 		case "mssql":
@@ -70,18 +79,16 @@ func (c Controller) ConnectDb() http.HandlerFunc {
 				information.Port,
 				information.Database)
 
-			DB, err = gorm.Open("mssql", MssqlDataSourceName)
+			MssqlDB, err = Repo.ConnectDb("mssql", MssqlDataSourceName)
 			if err != nil {
 				message.Message = "Connect Database failed"
-				utils.SendError(w, http.StatusInternalServerError, message)
+				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 
-			DB.DB().SetMaxIdleConns(information.MaxIdle)
-			DB.DB().SetMaxOpenConns(information.MaxOpen)
-
+			MssqlDB.DB().SetMaxIdleConns(information.MaxIdle)
+			MssqlDB.DB().SetMaxOpenConns(information.MaxOpen)
 			utils.SendSuccess(w, "Successfully Connect Database")
-
 		}
 	}
 }
