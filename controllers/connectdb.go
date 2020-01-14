@@ -13,16 +13,17 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var DB *gorm.DB
-
 //MssqlDB mssql引擎
 var MssqlDB *gorm.DB
 
 //MysqlDB mysql引擎
 var MysqlDB *gorm.DB
 
-//information資料庫資訊
-var information models.DBinformation
+//mysqlinformation資料庫資訊
+var mysqlinformation models.MysqlDBinformation
+
+//mssqlinformation資料庫資訊
+var mssqlinformation models.MssqlDBinformation
 
 //Controller struct
 type Controller struct{}
@@ -46,18 +47,18 @@ func (c Controller) ConnectDb() http.HandlerFunc {
 			Repo    repository.Repository
 		)
 
-		//decode
-		json.NewDecoder(r.Body).Decode(&information)
-
 		switch strings.ToLower(params["sql"]) {
 		case "mysql":
+			//decode
+			json.NewDecoder(r.Body).Decode(&mysqlinformation)
+
 			//完整的資料格式: [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
 			MysqlDataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
-				information.UserName,
-				information.Password,
-				information.Host,
-				information.Port,
-				information.Database)
+				mysqlinformation.UserName,
+				mysqlinformation.Password,
+				mysqlinformation.Host,
+				mysqlinformation.Port,
+				mysqlinformation.Database)
 
 			//開啟資料庫連線
 			MysqlDB, err = Repo.ConnectDb("mysql", MysqlDataSourceName)
@@ -67,17 +68,20 @@ func (c Controller) ConnectDb() http.HandlerFunc {
 				return
 			}
 
-			MysqlDB.DB().SetMaxIdleConns(information.MaxIdle)
-			MysqlDB.DB().SetMaxOpenConns(information.MaxOpen)
+			MysqlDB.DB().SetMaxIdleConns(mysqlinformation.MaxIdle)
+			MysqlDB.DB().SetMaxOpenConns(mysqlinformation.MaxOpen)
 			utils.SendSuccess(w, "Successfully Connect Database")
 
 		case "mssql":
+			//decode
+			json.NewDecoder(r.Body).Decode(&mssqlinformation)
+
 			MssqlDataSourceName := fmt.Sprintf("sqlserver://%s:%s@%s:%s? database=%s",
-				information.UserName,
-				information.Password,
-				information.Host,
-				information.Port,
-				information.Database)
+				mssqlinformation.UserName,
+				mssqlinformation.Password,
+				mssqlinformation.Host,
+				mssqlinformation.Port,
+				mssqlinformation.Database)
 
 			MssqlDB, err = Repo.ConnectDb("mssql", MssqlDataSourceName)
 			if err != nil {
@@ -86,8 +90,8 @@ func (c Controller) ConnectDb() http.HandlerFunc {
 				return
 			}
 
-			MssqlDB.DB().SetMaxIdleConns(information.MaxIdle)
-			MssqlDB.DB().SetMaxOpenConns(information.MaxOpen)
+			MssqlDB.DB().SetMaxIdleConns(mssqlinformation.MaxIdle)
+			MssqlDB.DB().SetMaxOpenConns(mssqlinformation.MaxOpen)
 			utils.SendSuccess(w, "Successfully Connect Database")
 		}
 	}

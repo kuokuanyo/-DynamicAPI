@@ -28,7 +28,7 @@ func (c Controller) GetTableByUUID() http.HandlerFunc {
 		)
 
 		//檢查資料庫是否連接
-		if DB == nil {
+		if MysqlDB == nil {
 			message.Message = "資料庫未連接，請連接資料庫"
 			utils.SendError(w, http.StatusInternalServerError, message, err)
 			return

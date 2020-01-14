@@ -32,13 +32,13 @@ func main() {
 	router.HandleFunc("/v1/{sql}/getalltables", controller.GetAlltables()).Methods("GET")
 	router.HandleFunc("/v1/{sql}/tableinformation/{tablename}", controller.GetTableInformation()).Methods("GET")
 	//CRUD
-	router.HandleFunc("/v1/getall/{tablename}", controller.GetAllData()).Methods("GET")
-	router.HandleFunc("/v1/getsome/{tablename}", controller.GetSomeData()).Methods("GET")
-	router.HandleFunc("/v1/addvalue/{tablename}", controller.AddValue()).Methods("POST")
-	router.HandleFunc("/v1/update/{tablename}", controller.UpdateValue()).Methods("PUT")
-	router.HandleFunc("/v1/delete/{tablename}", controller.DeleteValue()).Methods("DELETE")
+	router.HandleFunc("/v1/{sql}/getall/{tablename}", controller.GetAllData()).Methods("GET")
+	router.HandleFunc("/v1/{sql}/getsome/{tablename}", controller.GetSomeData()).Methods("GET")
+	router.HandleFunc("/v1/{sql}/addvalue/{tablename}", controller.AddValue()).Methods("POST")
+	router.HandleFunc("/v1/{sql}/update/{tablename}", controller.UpdateValue()).Methods("PUT")
+	router.HandleFunc("/v1/{sql}/delete/{tablename}", controller.DeleteValue()).Methods("DELETE")
 	//合併表
-	router.HandleFunc("/v1/jointable/{table1}/{table2}", controller.JoinTable()).Methods("GET")
+	router.HandleFunc("/v1/jointable/{sql1}/{table1}/{sql2}/{table2}", controller.JoinTable()).Methods("GET")
 	router.HandleFunc("/v1/jointable/{uuid}", controller.GetTableByUUID()).Methods("GET")
 
 	//伺服器連線

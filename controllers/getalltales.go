@@ -20,7 +20,7 @@ import (
 //@Param sql path string true "資料庫引擎"
 //@Success 200 {object} models.object "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/getalltables [get]
+//@Router /v1/{sql}/getalltables [get]
 func (c Controller) GetAlltables() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -49,7 +49,7 @@ func (c Controller) GetAlltables() http.HandlerFunc {
 			}
 			utils.SendSuccess(w, tablenames)
 		case "mssql":
-			execute := fmt.Sprintf("SELECT TABLE_NAME FROM %s.INFORMATION_SCHEMA.TABLES", information.Database)
+			execute := fmt.Sprintf("SELECT TABLE_NAME FROM %s.INFORMATION_SCHEMA.TABLES", mssqlinformation.Database)
 
 			//檢查資料庫是否連接
 			if MssqlDB == nil {

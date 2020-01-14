@@ -62,12 +62,24 @@
         }
       }
     },
-    "/getalltables": {
+    "/{sql}/getalltables": {
       "get": {
         "tags": [
           "Table Information"
         ],
         "summary": "取得所有資料表",
+        "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully",
@@ -96,13 +108,23 @@
         }
       }
     },
-    "/tableinformation/{tablename}": {
+    "/{sql}/tableinformation/{tablename}": {
       "get": {
         "tags": [
           "Table Information"
         ],
         "summary": "取得資料表資訊",
         "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          },
           {
             "description": "資料表名稱",
             "name": "tablename",
@@ -123,12 +145,20 @@
                   "$ref": "#/components/schemas/models.object"
                 },
                 "example": {
-                  "Field": "欄位名稱",
-                  "Type": "欄位類型",
-                  "null": "是否允許Null",
-                  "Key": "key類型",
-                  "Default": "預設值",
-                  "Extra": "額外資訊"
+                  "mysql": {
+                    "Field": "欄位名稱",
+                    "Type": "欄位類型",
+                    "null": "是否允許Null",
+                    "Key": "key類型",
+                    "Default": "預設值",
+                    "Extra": "額外資訊"
+                  },
+                  "mssql": {
+                    "Field": "欄位名稱",
+                    "Type": "欄位類型",
+                    "null": "是否允許Null",
+                    "Default": "預設值"
+                  }
                 }
               }
             }
@@ -149,13 +179,23 @@
         }
       }
     },
-    "/addvalue/{tablename}": {
+    "/{sql}/addvalue/{tablename}": {
       "post": {
         "tags": [
           "Table CRUD"
         ],
         "summary": "加入數值至資料表",
         "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          },
           {
             "description": "資料表名稱",
             "name": "tablename",
@@ -211,13 +251,23 @@
         }
       }
     },
-    "/getall/{tablename}": {
+    "/{sql}/getall/{tablename}": {
       "get": {
         "tags": [
           "Table CRUD"
         ],
         "summary": "取得所有資料",
         "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          },
           {
             "description": "資料表名稱",
             "name": "tablename",
@@ -275,13 +325,23 @@
         }
       }
     },
-    "/getsome/{tablename}": {
+    "/{sql}/getsome/{tablename}": {
       "get": {
         "tags": [
           "Table CRUD"
         ],
         "summary": "取得部分資料",
         "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          },
           {
             "description": "資料表名稱",
             "name": "tablename",
@@ -355,13 +415,23 @@
         }
       }
     },
-    "/update/{tablename}": {
+    "/{sql}/update/{tablename}": {
       "put": {
         "tags": [
           "Table CRUD"
         ],
         "summary": "更新資料表數值",
         "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          },
           {
             "description": "資料表名稱",
             "name": "tablename",
@@ -433,13 +503,23 @@
         }
       }
     },
-    "/delete/{tablename}": {
+    "/{sql}/delete/{tablename}": {
       "delete": {
         "tags": [
           "Table CRUD"
         ],
         "summary": "刪除資料表數值",
         "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          },
           {
             "description": "資料表名稱",
             "name": "tablename",
@@ -495,13 +575,23 @@
         }
       }
     },
-    "/v1/jointable/{table1}/{table2}": {
+    "/jointable/{sql1}/{table1}/{sql2}/{table2}": {
       "get": {
         "tags": [
           "Join Table"
         ],
         "summary": "資料表合併",
         "parameters": [
+          {
+            "description": "資料庫引擎",
+            "name": "sql1",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
+          },
           {
             "description": "資料表名稱",
             "name": "table1",
@@ -511,6 +601,16 @@
               "type": "string"
             },
             "example": "peoples"
+          },
+          {
+            "description": "資料庫引擎",
+            "name": "sql2",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mysql or mssql"
+            }
           },
           {
             "description": "資料表名稱",
@@ -598,7 +698,7 @@
         }
       }
     },
-    "/v1/jointable/{uuid}": {
+    "/jointable/{uuid}": {
       "get": {
         "tags": [
           "Join Table"

@@ -21,13 +21,13 @@ import (
 //@Param tablename path string true "資料庫名稱"
 //@Success 200 {object} models.object "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/tableinformation/{tablename} [get]
+//@Router /v1/{sql}/tableinformation/{tablename} [get]
 func (c Controller) GetTableInformation() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			message      models.Error
-			mysqlresults []models.MysqlResult
-			mssqlresults []models.MssqlResult
+			mysqlresults []models.Result
+			mssqlresults []models.Result
 			params       = mux.Vars(r) //印出url參數
 			Repo         repository.Repository
 			err          error
@@ -43,17 +43,18 @@ func (c Controller) GetTableInformation() http.HandlerFunc {
 			}
 
 			//指令
-			describetable := fmt.Sprintf("DESCRIBE %s", params["tablename"])
+			mysqldescribe := fmt.Sprintf("select COLUMN_NAME, DATA_TYPE, IS_NULLABLE,COLUMN_DEFAULT from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s' and TABLE_SCHEMA='%s'",
+				params["tablename"], mysqlinformation.Database) //執行資料庫命令
 
-			rows, err := Repo.RawData(MysqlDB, describetable)
+			rows, err := Repo.RawData(MysqlDB, mysqldescribe)
 			if err != nil {
 				message.Message = "取得資料表資訊時發生錯誤"
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
 			for rows.Next() {
-				var result models.MysqlResult
-				rows.Scan(&result.Field, &result.Type, &result.Null, &result.Key, &result.Default, &result.Extra)
+				var result models.Result
+				rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
 				mysqlresults = append(mysqlresults, result)
 			}
 			utils.SendSuccess(w, mysqlresults)
@@ -67,7 +68,7 @@ func (c Controller) GetTableInformation() http.HandlerFunc {
 			}
 
 			//指令
-			execute := fmt.Sprintf(`select COLUMN_NAME, DATA_TYPE, IS_NULLABLE,COLUMN_DEFAULT from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'`, params["tablename"])
+			execute := fmt.Sprintf(`select COLUMN_NAME, DATA_TYPE, IS_NULLABLE,COLUMN_DEFAULT from %s.INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'`, mssqlinformation.Database, params["tablename"])
 			rows, err := Repo.RawData(MssqlDB, execute)
 			if err != nil {
 				message.Message = "取得資料表資訊時發生錯誤"
@@ -75,12 +76,10 @@ func (c Controller) GetTableInformation() http.HandlerFunc {
 				return
 			}
 			for rows.Next() {
-				var result models.MssqlResult
+				var result models.Result
 				rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				fmt.Println("1")
 				mssqlresults = append(mssqlresults, result)
 			}
-			fmt.Println(execute)
 			utils.SendSuccess(w, mssqlresults)
 		}
 	}
