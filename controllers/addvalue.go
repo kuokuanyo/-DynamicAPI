@@ -4,6 +4,7 @@ import (
 	models "DynamicAPI/model"
 	"DynamicAPI/repository"
 	"DynamicAPI/utils"
+	"database/sql"
 
 	"fmt"
 	"net/http"
@@ -37,8 +38,8 @@ func (c Controller) AddValue() http.HandlerFunc {
 			value      []string
 			Repo       repository.Repository
 			err        error
+			rows       *sql.Rows
 		)
-
 		switch strings.ToLower(params["sql"]) {
 		case "mysql":
 			//檢查資料庫是否連接
@@ -47,48 +48,8 @@ func (c Controller) AddValue() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//取得資料表欄位資訊
-			rows, err := Repo.RawData(MysqlDB, mysqldescribe)
-			if err != nil {
-				message.Message = "取得欄位資訊時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-			for rows.Next() {
-				var result models.Result
-				err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				if err != nil {
-					message.Message = "Scan資料時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
-
-				//選擇欄位
-				if len(queryvalue) > 0 {
-					for _, y := range queryvalue {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							index = append(index, new[0])
-							value = append(value, new[1])
-						}
-					}
-				}
-			}
-
-			//處理sql語法
-			//加入欄位
-			slicetostringIndex := strings.Join(index, ", ")
-			slicetostringValue := strings.Join(value, `", " `)
-
-			insertvalue := fmt.Sprintf(`INSERT INTO %s(%s) VALUES("%s")`, params["tablename"], slicetostringIndex, slicetostringValue)
-
-			if err = Repo.Exec(MysqlDB, insertvalue); err != nil {
-				message.Message = "插入資料時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-
+			rows, err = Repo.RawData(MysqlDB, mysqldescribe)
 		case "mssql":
 			//檢查資料庫是否連接
 			if MssqlDB == nil {
@@ -96,47 +57,51 @@ func (c Controller) AddValue() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//取得資料表欄位資訊
-			rows, err := Repo.RawData(MssqlDB, mssqldescribe)
+			rows, err = Repo.RawData(MssqlDB, mssqldescribe)
+		}
+		if err != nil {
+			message.Message = "取得欄位資訊時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
+		}
+		for rows.Next() {
+			var result models.Result
+			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
 			if err != nil {
-				message.Message = "取得欄位資訊時發生錯誤"
+				message.Message = "Scan資料時發生錯誤"
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-			for rows.Next() {
-				var result models.Result
-				err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				if err != nil {
-					message.Message = "Scan資料時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
 
-				//選擇欄位
-				if len(queryvalue) > 0 {
-					for _, y := range queryvalue {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							index = append(index, new[0])
-							value = append(value, new[1])
-						}
+			//選擇欄位
+			if len(queryvalue) > 0 {
+				for _, y := range queryvalue {
+					new := strings.Split(y, ",")
+					if new[0] == result.Field {
+						index = append(index, new[0])
+						value = append(value, new[1])
 					}
 				}
 			}
-
-			//處理sql語法
-			//加入欄位
-			slicetostringIndex := strings.Join(index, ", ")
-			slicetostringValue := strings.Join(value, `', ' `)
-
+		}
+		//處理sql語法
+		slicetostringIndex := strings.Join(index, ", ")
+		slicetostringValue := strings.Join(value, `', ' `)
+		switch strings.ToLower(params["sql"]) {
+		case "mysql":
+			insertvalue := fmt.Sprintf(`INSERT INTO %s(%s) VALUES('%s')`, params["tablename"],
+				slicetostringIndex, slicetostringValue)
+			err = Repo.Exec(MysqlDB, insertvalue)
+		case "mssql":
 			insertvalue := fmt.Sprintf(`INSERT INTO %s.dbo.%s(%s) VALUES('%s')`,
 				mssqlinformation.Database, params["tablename"], slicetostringIndex, slicetostringValue)
-			if err = Repo.Exec(MssqlDB, insertvalue); err != nil {
-				message.Message = "插入資料時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
+			err = Repo.Exec(MssqlDB, insertvalue)
+		}
+		if err != nil {
+			message.Message = "插入資料時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
 		}
 		utils.SendSuccess(w, "Successfully Add Value")
 	}

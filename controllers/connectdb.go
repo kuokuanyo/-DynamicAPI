@@ -13,20 +13,17 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-//MssqlDB mssql引擎
-var MssqlDB *gorm.DB
-
-//MysqlDB mysql引擎
-var MysqlDB *gorm.DB
-
-//mysqlinformation資料庫資訊
-var mysqlinformation models.MysqlDBinformation
-
-//mssqlinformation資料庫資訊
-var mssqlinformation models.MssqlDBinformation
-
 //Controller struct
 type Controller struct{}
+
+var (
+	//MssqlDB mssql引擎
+	MssqlDB *gorm.DB
+	//MysqlDB mysql引擎
+	MysqlDB          *gorm.DB
+	mysqlinformation models.MysqlDBinformation
+	mssqlinformation models.MssqlDBinformation
+)
 
 //ConnectDb 測試是否能連接資料庫
 //@Summary 連接資料庫

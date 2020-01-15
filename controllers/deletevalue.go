@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	models "DynamicAPI/model"
-	"DynamicAPI/repository"
-	"DynamicAPI/utils"
-
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
+
+	models "DynamicAPI/model"
+	"DynamicAPI/repository"
+	"DynamicAPI/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -32,13 +33,13 @@ func (c Controller) DeleteValue() http.HandlerFunc {
 				params["tablename"], mysqlinformation.Database) //執行資料庫命令
 			mssqldescribe = fmt.Sprintf(`select COLUMN_NAME, DATA_TYPE, IS_NULLABLE,COLUMN_DEFAULT from %s.INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'`,
 				mssqlinformation.Database, params["tablename"])
-			mysqldeletevalue = fmt.Sprintf("DELETE FROM %s WHERE ", params["tablename"])
-			mssqldeletevalue = fmt.Sprintf("DELETE FROM %s.dbo.%s WHERE ", mssqlinformation.Database, params["tablename"])
-			where            = r.URL.Query()["where"]
-			whereindex       []string
-			wherevalue       []interface{}
-			Repo             repository.Repository
-			err              error
+			where       = r.URL.Query()["where"]
+			whereindex  []string
+			wherevalue  []interface{}
+			Repo        repository.Repository
+			err         error
+			rows        *sql.Rows
+			deletevalue string
 		)
 
 		switch strings.ToLower(params["sql"]) {
@@ -49,49 +50,8 @@ func (c Controller) DeleteValue() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//取得資料表欄位資訊
-			rows, err := Repo.RawData(MysqlDB, mysqldescribe)
-			if err != nil {
-				message.Message = "取得欄位資訊時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-			for rows.Next() {
-				var result models.Result
-				err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				if err != nil {
-					message.Message = "Scan資料時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
-
-				if len(where) > 0 {
-					for _, y := range where {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							whereindex = append(whereindex, new[0])
-							wherevalue = append(wherevalue, new[1])
-						}
-					}
-				}
-			}
-
-			//處理sql語法
-			for i := 0; i < len(whereindex); i++ {
-				if i == len(whereindex)-1 {
-					mysqldeletevalue += fmt.Sprintf(`%s="%s"`, whereindex[i], wherevalue[i])
-				} else {
-					mysqldeletevalue += fmt.Sprintf(`%s="%s" AND `, whereindex[i], wherevalue[i])
-				}
-			}
-
-			//執行刪除數值命令
-			if err = Repo.Exec(MysqlDB, mysqldeletevalue); err != nil {
-				message.Message = "刪除資料時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
+			rows, err = Repo.RawData(MysqlDB, mysqldescribe)
 		case "mssql":
 			//檢查資料庫是否連接
 			if MssqlDB == nil {
@@ -99,49 +59,57 @@ func (c Controller) DeleteValue() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//取得資料表欄位資訊
-			rows, err := Repo.RawData(MssqlDB, mssqldescribe)
+			rows, err = Repo.RawData(MssqlDB, mssqldescribe)
+		}
+		if err != nil {
+			message.Message = "取得欄位資訊時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
+		}
+		for rows.Next() {
+			var result models.Result
+			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
 			if err != nil {
-				message.Message = "取得欄位資訊時發生錯誤"
+				message.Message = "Scan資料時發生錯誤"
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-			for rows.Next() {
-				var result models.Result
-				err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				if err != nil {
-					message.Message = "Scan資料時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
 
-				if len(where) > 0 {
-					for _, y := range where {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							whereindex = append(whereindex, new[0])
-							wherevalue = append(wherevalue, new[1])
-						}
+			if len(where) > 0 {
+				for _, y := range where {
+					new := strings.Split(y, ",")
+					if new[0] == result.Field {
+						whereindex = append(whereindex, new[0])
+						wherevalue = append(wherevalue, new[1])
 					}
 				}
 			}
-
-			//處理sql語法
-			for i := 0; i < len(whereindex); i++ {
-				if i == len(whereindex)-1 {
-					mssqldeletevalue += fmt.Sprintf(`%s='%s'`, whereindex[i], wherevalue[i])
-				} else {
-					mssqldeletevalue += fmt.Sprintf(`%s='%s' AND `, whereindex[i], wherevalue[i])
-				}
+		}
+		switch strings.ToLower(params["sql"]) {
+		case "mysql":
+			deletevalue = fmt.Sprintf("DELETE FROM %s WHERE ", params["tablename"])
+		case "mssql":
+			deletevalue = fmt.Sprintf("DELETE FROM %s.dbo.%s WHERE ", mssqlinformation.Database, params["tablename"])
+		}
+		//處理sql語法
+		for i := 0; i < len(whereindex); i++ {
+			if i == len(whereindex)-1 {
+				deletevalue += fmt.Sprintf(`%s='%s'`, whereindex[i], wherevalue[i])
+			} else {
+				deletevalue += fmt.Sprintf(`%s='%s' AND `, whereindex[i], wherevalue[i])
 			}
-
-			//執行刪除數值命令
-			if err = Repo.Exec(MssqlDB, mssqldeletevalue); err != nil {
-				message.Message = "刪除資料時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
+		}
+		switch strings.ToLower(params["sql"]) {
+		case "mysql":
+			err = Repo.Exec(MysqlDB, deletevalue)
+		case "mssql":
+			err = Repo.Exec(MssqlDB, deletevalue)
+		}
+		if err != nil {
+			message.Message = "刪除資料時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
 		}
 		utils.SendSuccess(w, "Successfully Delete Value")
 	}

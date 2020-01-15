@@ -1,13 +1,14 @@
 package controllers
 
 import (
+	"database/sql"
+	"fmt"
+	"net/http"
+	"strings"
+
 	models "DynamicAPI/model"
 	"DynamicAPI/repository"
 	"DynamicAPI/utils"
-	"strings"
-
-	"fmt"
-	"net/http"
 
 	"github.com/gorilla/mux"
 )
@@ -25,12 +26,12 @@ import (
 func (c Controller) GetTableInformation() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			message      models.Error
-			mysqlresults []models.Result
-			mssqlresults []models.Result
-			params       = mux.Vars(r) //印出url參數
-			Repo         repository.Repository
-			err          error
+			message models.Error
+			results []models.Result
+			params  = mux.Vars(r) //印出url參數
+			Repo    repository.Repository
+			err     error
+			rows    *sql.Rows
 		)
 
 		switch strings.ToLower(params["sql"]) {
@@ -41,24 +42,11 @@ func (c Controller) GetTableInformation() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//指令
 			mysqldescribe := fmt.Sprintf("select COLUMN_NAME, DATA_TYPE, IS_NULLABLE,COLUMN_DEFAULT from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s' and TABLE_SCHEMA='%s'",
 				params["tablename"], mysqlinformation.Database) //執行資料庫命令
 
-			rows, err := Repo.RawData(MysqlDB, mysqldescribe)
-			if err != nil {
-				message.Message = "取得資料表資訊時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-			for rows.Next() {
-				var result models.Result
-				rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				mysqlresults = append(mysqlresults, result)
-			}
-			utils.SendSuccess(w, mysqlresults)
-
+			rows, err = Repo.RawData(MysqlDB, mysqldescribe)
 		case "mssql":
 			//檢查資料庫是否連接
 			if MssqlDB == nil {
@@ -66,21 +54,20 @@ func (c Controller) GetTableInformation() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//指令
 			execute := fmt.Sprintf(`select COLUMN_NAME, DATA_TYPE, IS_NULLABLE,COLUMN_DEFAULT from %s.INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'`, mssqlinformation.Database, params["tablename"])
-			rows, err := Repo.RawData(MssqlDB, execute)
-			if err != nil {
-				message.Message = "取得資料表資訊時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-			for rows.Next() {
-				var result models.Result
-				rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				mssqlresults = append(mssqlresults, result)
-			}
-			utils.SendSuccess(w, mssqlresults)
+			rows, err = Repo.RawData(MssqlDB, execute)
 		}
+		if err != nil {
+			message.Message = "取得資料表資訊時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
+		}
+		for rows.Next() {
+			var result models.Result
+			rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
+			results = append(results, result)
+		}
+		utils.SendSuccess(w, results)
 	}
 }

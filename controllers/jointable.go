@@ -4,13 +4,14 @@ import (
 	models "DynamicAPI/model"
 	"DynamicAPI/repository"
 	"DynamicAPI/utils"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
-	uuid "src/github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 //Identity 利用uuid建立新的api
@@ -262,160 +263,64 @@ func (c Controller) JoinTable() http.HandlerFunc {
 			jointable2[i] = params["table2"] + "." + join[i]
 		}
 
+		var getdata string
 		if params["sql1"] == "mysql" && params["sql2"] == "mysql" {
-
-			getdata := fmt.Sprintf("select %s from %s join %s on ",
+			getdata = fmt.Sprintf("select %s from %s join %s on ",
 				sliceTostringCol, params["table1"], params["table2"])
-			for i := 0; i < len(join); i++ {
-				if i == len(join)-1 {
-					getdata += fmt.Sprintf("%s=%s", jointable1[i], jointable2[i])
-				} else {
-					getdata += fmt.Sprintf("%s=%s and ", jointable1[i], jointable2[i])
-				}
-			}
-
-			//執行命令
-			rows, err := Repo.RawData(MysqlDB, getdata)
-			if err != nil {
-				message.Message = "合併資料表時發生錯誤"
-				fmt.Println(err)
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-			for rows.Next() {
-				data := make(map[string]interface{})
-				rows.Scan(valuePtrs...)
-				for i := range col {
-					if strings.Contains(colType[i], "varchar") { //欄位為string
-						data[col[i]] = value[i]
-					} else if strings.Contains(colType[i], "int") {
-						data[col[i]], err = strconv.Atoi(value[i]) //欄位為int
-						if err != nil {
-							message.Message = "數值轉換時發生錯誤"
-							utils.SendError(w, http.StatusInternalServerError, message, err)
-							return
-						}
-					} else {
-						data[col[i]] = value[i]
-					}
-				}
-				datas = append(datas, data)
-			}
 		} else if params["sql1"] == "mssql" && params["sql2"] == "mssql" {
-			getdata := fmt.Sprintf("select %s from %s.dbo.%s join %s.dbo.%s on ",
+			getdata = fmt.Sprintf("select %s from %s.dbo.%s join %s.dbo.%s on ",
 				sliceTostringCol, mssqlinformation.Database, params["table1"], mssqlinformation.Database, params["table2"])
-			for i := 0; i < len(join); i++ {
-				if i == len(join)-1 {
-					getdata += fmt.Sprintf("%s=%s", jointable1[i], jointable2[i])
-				} else {
-					getdata += fmt.Sprintf("%s=%s and ", jointable1[i], jointable2[i])
-				}
-			}
-
-			//執行命令
-			rows, err := Repo.RawData(MssqlDB, getdata)
-			if err != nil {
-				message.Message = "合併資料表時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-			for rows.Next() {
-				data := make(map[string]interface{})
-				rows.Scan(valuePtrs...)
-				for i := range col {
-					if strings.Contains(colType[i], "varchar") { //欄位為string
-						data[col[i]] = value[i]
-					} else if strings.Contains(colType[i], "int") {
-						data[col[i]], err = strconv.Atoi(value[i]) //欄位為int
-						if err != nil {
-							message.Message = "數值轉換時發生錯誤"
-							utils.SendError(w, http.StatusInternalServerError, message, err)
-							return
-						}
-					} else {
-						data[col[i]] = value[i]
-					}
-				}
-				datas = append(datas, data)
-			}
 		} else if params["sql1"] != params["sql2"] {
 			if params["sql1"] == "mssql" {
-				getdata := fmt.Sprintf("select %s from openquery(MYSQL, 'select * from %s.%s') %s join %s.dbo.%s on ",
+				getdata = fmt.Sprintf("select %s from openquery(MYSQL, 'select * from %s.%s') %s join %s.dbo.%s on ",
 					sliceTostringCol, mysqlinformation.Database, params["table2"], params["table2"],
 					mssqlinformation.Database, params["table1"])
-				for i := 0; i < len(join); i++ {
-					if i == len(join)-1 {
-						getdata += fmt.Sprintf("%s=%s", jointable1[i], jointable2[i])
-					} else {
-						getdata += fmt.Sprintf("%s=%s and ", jointable1[i], jointable2[i])
-					}
-				}
-				fmt.Println(getdata)
-				//執行命令
-				rows, err := Repo.RawData(MssqlDB, getdata)
-				if err != nil {
-					message.Message = "合併資料表時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
-				for rows.Next() {
-					data := make(map[string]interface{})
-					rows.Scan(valuePtrs...)
-					for i := range col {
-						if strings.Contains(colType[i], "varchar") { //欄位為string
-							data[col[i]] = value[i]
-						} else if strings.Contains(colType[i], "int") {
-							data[col[i]], err = strconv.Atoi(value[i]) //欄位為int
-							if err != nil {
-								message.Message = "數值轉換時發生錯誤"
-								utils.SendError(w, http.StatusInternalServerError, message, err)
-								return
-							}
-						} else {
-							data[col[i]] = value[i]
-						}
-					}
-					datas = append(datas, data)
-				}
 			} else if params["sql2"] == "mssql" {
-				getdata := fmt.Sprintf("select %s from openquery(MYSQL, 'select * from %s.%s') %s join %s.dbo.%s on ",
+				getdata = fmt.Sprintf("select %s from openquery(MYSQL, 'select * from %s.%s') %s join %s.dbo.%s on ",
 					sliceTostringCol, mysqlinformation.Database, params["table1"], params["table1"],
 					mssqlinformation.Database, params["table2"])
-				for i := 0; i < len(join); i++ {
-					if i == len(join)-1 {
-						getdata += fmt.Sprintf("%s=%s", jointable1[i], jointable2[i])
-					} else {
-						getdata += fmt.Sprintf("%s=%s and ", jointable1[i], jointable2[i])
-					}
-				}
+			}
+		}
 
-				//執行命令
-				rows, err := Repo.RawData(MssqlDB, getdata)
-				if err != nil {
-					message.Message = "合併資料表時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
-				for rows.Next() {
-					data := make(map[string]interface{})
-					rows.Scan(valuePtrs...)
-					for i := range col {
-						if strings.Contains(colType[i], "varchar") { //欄位為string
-							data[col[i]] = value[i]
-						} else if strings.Contains(colType[i], "int") {
-							data[col[i]], err = strconv.Atoi(value[i]) //欄位為int
-							if err != nil {
-								message.Message = "數值轉換時發生錯誤"
-								utils.SendError(w, http.StatusInternalServerError, message, err)
-								return
-							}
-						} else {
-							data[col[i]] = value[i]
-						}
+		for i := 0; i < len(join); i++ {
+			if i == len(join)-1 {
+				getdata += fmt.Sprintf("%s=%s", jointable1[i], jointable2[i])
+			} else {
+				getdata += fmt.Sprintf("%s=%s and ", jointable1[i], jointable2[i])
+			}
+		}
+
+		var rows *sql.Rows
+		if params["sql1"] == "mysql" && params["sql2"] == "mysql" {
+			//執行命令
+			rows, err = Repo.RawData(MysqlDB, getdata)
+		} else {
+			rows, err = Repo.RawData(MssqlDB, getdata)
+		}
+
+		if err != nil {
+			message.Message = "合併資料表時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
+		}
+		for rows.Next() {
+			data := make(map[string]interface{})
+			rows.Scan(valuePtrs...)
+			for i := range col {
+				if strings.Contains(colType[i], "varchar") { //欄位為string
+					data[col[i]] = value[i]
+				} else if strings.Contains(colType[i], "int") {
+					data[col[i]], err = strconv.Atoi(value[i]) //欄位為int
+					if err != nil {
+						message.Message = "數值轉換時發生錯誤"
+						utils.SendError(w, http.StatusInternalServerError, message, err)
+						return
 					}
-					datas = append(datas, data)
+				} else {
+					data[col[i]] = value[i]
 				}
 			}
+			datas = append(datas, data)
 		}
 
 		//建立一組驗證的uuid

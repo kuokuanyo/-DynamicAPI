@@ -1,12 +1,14 @@
 package controllers
 
 import (
-	models "DynamicAPI/model"
-	"DynamicAPI/repository"
-	"DynamicAPI/utils"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
+
+	models "DynamicAPI/model"
+	"DynamicAPI/repository"
+	"DynamicAPI/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -32,16 +34,16 @@ func (c Controller) UpdateValue() http.HandlerFunc {
 				params["tablename"], mysqlinformation.Database) //執行資料庫命令
 			mssqldescribe = fmt.Sprintf(`select COLUMN_NAME, DATA_TYPE, IS_NULLABLE,COLUMN_DEFAULT from %s.INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='%s'`,
 				mssqlinformation.Database, params["tablename"])
-			mysqlupdatevalue = fmt.Sprintf("UPDATE %s SET ", params["tablename"])
-			mssqlupdatevalue = fmt.Sprintf("UPDATE %s.dbo.%s SET ", mssqlinformation.Database, params["tablename"])
-			set              = r.URL.Query()["set"]
-			where            = r.URL.Query()["where"]
-			setindex         []string
-			setvalue         []interface{}
-			whereindex       []string
-			wherevalue       []interface{}
-			Repo             repository.Repository
-			err              error
+			set         = r.URL.Query()["set"]
+			where       = r.URL.Query()["where"]
+			setindex    []string
+			setvalue    []interface{}
+			whereindex  []string
+			wherevalue  []interface{}
+			Repo        repository.Repository
+			err         error
+			rows        *sql.Rows
+			updatevalue string
 		)
 
 		switch strings.ToLower(params["sql"]) {
@@ -52,67 +54,8 @@ func (c Controller) UpdateValue() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//取得資料表欄位資訊
-			rows, err := Repo.RawData(MysqlDB, mysqldescribe)
-			if err != nil {
-				message.Message = "取得欄位資訊時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-			for rows.Next() {
-				var result models.Result
-				err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				if err != nil {
-					message.Message = "Scan資料時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
-
-				//選擇欄位
-				if len(set) > 0 {
-					for _, y := range set {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							setindex = append(setindex, new[0])
-							setvalue = append(setvalue, new[1])
-						}
-					}
-				}
-				if len(where) > 0 {
-					for _, y := range where {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							whereindex = append(whereindex, new[0])
-							wherevalue = append(wherevalue, new[1])
-						}
-					}
-				}
-			}
-
-			//處理sql語法
-			for i := 0; i < len(setindex); i++ {
-				if i == len(setindex)-1 {
-					mysqlupdatevalue += fmt.Sprintf(`%s="%s" WHERE `, setindex[i], setvalue[i])
-				} else {
-					mysqlupdatevalue += fmt.Sprintf(`%s="%s" AND `, setindex[i], setvalue[i])
-				}
-			}
-			for i := 0; i < len(whereindex); i++ {
-				if i == len(whereindex)-1 {
-					mysqlupdatevalue += fmt.Sprintf("%s=%s", whereindex[i], wherevalue[i])
-				} else {
-					mysqlupdatevalue += fmt.Sprintf("%s=%s AND ", whereindex[i], wherevalue[i])
-				}
-			}
-
-			//執行更新數值命令
-			if err = Repo.Exec(MysqlDB, mysqlupdatevalue); err != nil {
-				message.Message = "資料更新時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
-			}
-
+			rows, err = Repo.RawData(MysqlDB, mysqldescribe)
 		case "mssql":
 			//檢查資料庫是否連接
 			if MssqlDB == nil {
@@ -120,66 +63,73 @@ func (c Controller) UpdateValue() http.HandlerFunc {
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-
 			//取得資料表欄位資訊
-			rows, err := Repo.RawData(MssqlDB, mssqldescribe)
+			rows, err = Repo.RawData(MssqlDB, mssqldescribe)
+		}
+		if err != nil {
+			message.Message = "取得欄位資訊時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
+		}
+		for rows.Next() {
+			var result models.Result
+			err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
 			if err != nil {
-				message.Message = "取得欄位資訊時發生錯誤"
+				message.Message = "Scan資料時發生錯誤"
 				utils.SendError(w, http.StatusInternalServerError, message, err)
 				return
 			}
-			for rows.Next() {
-				var result models.Result
-				err = rows.Scan(&result.Field, &result.Type, &result.Null, &result.Default)
-				if err != nil {
-					message.Message = "Scan資料時發生錯誤"
-					utils.SendError(w, http.StatusInternalServerError, message, err)
-					return
-				}
-
-				//選擇欄位
-				if len(set) > 0 {
-					for _, y := range set {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							setindex = append(setindex, new[0])
-							setvalue = append(setvalue, new[1])
-						}
-					}
-				}
-				if len(where) > 0 {
-					for _, y := range where {
-						new := strings.Split(y, ",")
-						if new[0] == result.Field {
-							whereindex = append(whereindex, new[0])
-							wherevalue = append(wherevalue, new[1])
-						}
+			//選擇欄位
+			if len(set) > 0 {
+				for _, y := range set {
+					new := strings.Split(y, ",")
+					if new[0] == result.Field {
+						setindex = append(setindex, new[0])
+						setvalue = append(setvalue, new[1])
 					}
 				}
 			}
-
-			//處理sql語法
-			for i := 0; i < len(setindex); i++ {
-				if i == len(setindex)-1 {
-					mssqlupdatevalue += fmt.Sprintf(`%s='%s' WHERE `, setindex[i], setvalue[i])
-				} else {
-					mssqlupdatevalue += fmt.Sprintf(`%s='%s', `, setindex[i], setvalue[i])
+			if len(where) > 0 {
+				for _, y := range where {
+					new := strings.Split(y, ",")
+					if new[0] == result.Field {
+						whereindex = append(whereindex, new[0])
+						wherevalue = append(wherevalue, new[1])
+					}
 				}
 			}
-			for i := 0; i < len(whereindex); i++ {
-				if i == len(whereindex)-1 {
-					mssqlupdatevalue += fmt.Sprintf(`%s='%s'`, whereindex[i], wherevalue[i])
-				} else {
-					mssqlupdatevalue += fmt.Sprintf(`%s='%s' AND `, whereindex[i], wherevalue[i])
-				}
+		}
+		switch strings.ToLower(params["sql"]) {
+		case "mysql":
+			updatevalue = fmt.Sprintf("UPDATE %s SET ", params["tablename"])
+		case "mssql":
+			updatevalue = fmt.Sprintf("UPDATE %s.dbo.%s SET ", mssqlinformation.Database, params["tablename"])
+		}
+		//處理sql語法
+		for i := 0; i < len(setindex); i++ {
+			if i == len(setindex)-1 {
+				updatevalue += fmt.Sprintf(`%s='%s' WHERE `, setindex[i], setvalue[i])
+			} else {
+				updatevalue += fmt.Sprintf(`%s='%s', `, setindex[i], setvalue[i])
 			}
-
-			//執行更新數值命令
-			if err = Repo.Exec(MssqlDB, mssqlupdatevalue); err != nil {
-				message.Message = "資料更新時發生錯誤"
-				utils.SendError(w, http.StatusInternalServerError, message, err)
-				return
+		}
+		for i := 0; i < len(whereindex); i++ {
+			if i == len(whereindex)-1 {
+				updatevalue += fmt.Sprintf("%s='%s'", whereindex[i], wherevalue[i])
+			} else {
+				updatevalue += fmt.Sprintf("%s='%s' AND ", whereindex[i], wherevalue[i])
 			}
+		}
+		switch strings.ToLower(params["sql"]) {
+		case "mysql":
+			err = Repo.Exec(MysqlDB, updatevalue)
+		case "mssql":
+			err = Repo.Exec(MssqlDB, updatevalue)
+		}
+		if err != nil {
+			message.Message = "資料更新時發生錯誤"
+			utils.SendError(w, http.StatusInternalServerError, message, err)
+			return
 		}
 		utils.SendSuccess(w, "Successfully Update Value")
 	}
