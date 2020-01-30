@@ -25,7 +25,7 @@ import (
 //@Param where query array false "選擇條件"
 //@Success 200 {object} models.object "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/{sql}/getsome/{tablename} [get]
+//@Router /v1/{sql}/{tablename}/field [get]
 func (c Controller) GetSomeData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//設定變數

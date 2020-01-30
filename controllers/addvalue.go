@@ -23,7 +23,7 @@ import (
 //@Param value query array false "插入數值"
 //@Success 200 {string} string "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/{sql}/addvalue/{tablename} [post]
+//@Router /v1/{sql}/table/{tablename} [post]
 func (c Controller) AddValue() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (

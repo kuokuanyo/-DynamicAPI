@@ -34,7 +34,7 @@ var (
 //@Param information body models.DBinformation false "資料庫資訊"
 //@Success 200 {string} string "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/opendb/{sql} [post]
+//@Router /v1/{sql} [post]
 func (c Controller) ConnectDb() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (

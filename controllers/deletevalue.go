@@ -23,7 +23,7 @@ import (
 //@Param where query array false "被刪除的欄位條件"
 //@Success 200 {string} string "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/{sql}/delete/{tablename} [delete]
+//@Router /v1/{sql}/table/{tablename} [delete]
 func (c Controller) DeleteValue() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (

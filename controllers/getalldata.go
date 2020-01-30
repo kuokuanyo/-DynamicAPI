@@ -24,7 +24,7 @@ import (
 //@Param col query array false "挑選欄位"
 //@Success 200 {object} models.object "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/{sql}/getall/{tablename} [get]
+//@Router /v1/{sql}/table/{tablename} [get]
 func (c Controller) GetAllData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (

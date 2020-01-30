@@ -27,16 +27,16 @@ func main() {
 	//func (r *Router) HandleFunc(path string, f func(http.ResponseWriter, *http.Request)) *Route
 	//func (r *Router) Methods(methods ...string) *Route
 	//連接資料庫
-	router.HandleFunc("/v1/opendb/{sql}", controller.ConnectDb()).Methods("POST")
+	router.HandleFunc("/v1/{sql}", controller.ConnectDb()).Methods("POST")
 	//資料庫資訊
-	router.HandleFunc("/v1/{sql}/getalltables", controller.GetAlltables()).Methods("GET")
-	router.HandleFunc("/v1/{sql}/tableinformation/{tablename}", controller.GetTableInformation()).Methods("GET")
-	//CRUD
-	router.HandleFunc("/v1/{sql}/getall/{tablename}", controller.GetAllData()).Methods("GET")
-	router.HandleFunc("/v1/{sql}/getsome/{tablename}", controller.GetSomeData()).Methods("GET")
-	router.HandleFunc("/v1/{sql}/addvalue/{tablename}", controller.AddValue()).Methods("POST")
-	router.HandleFunc("/v1/{sql}/update/{tablename}", controller.UpdateValue()).Methods("PUT")
-	router.HandleFunc("/v1/{sql}/delete/{tablename}", controller.DeleteValue()).Methods("DELETE")
+	router.HandleFunc("/v1/information/{sql}/{tablename}", controller.GetTableInformation()).Methods("GET")
+	//table CRUD
+	router.HandleFunc("/v1/table/{sql}", controller.GetAlltables()).Methods("GET")
+	router.HandleFunc("/v1/table/{sql}/{tablename}", controller.GetAllData()).Methods("GET")
+	router.HandleFunc("/v1/table/{sql}/{tablename}", controller.AddValue()).Methods("POST")
+	router.HandleFunc("/v1/table/{sql}/{tablename}", controller.UpdateValue()).Methods("PUT")
+	router.HandleFunc("/v1/table/{sql}/{tablename}", controller.DeleteValue()).Methods("DELETE")
+	router.HandleFunc("/v1/table/{sql}/{tablename}/field", controller.GetSomeData()).Methods("GET")
 	//合併表
 	router.HandleFunc("/v1/jointable/{sql1}/{table1}/{sql2}/{table2}", controller.JoinTable()).Methods("GET")
 	router.HandleFunc("/v1/jointable/{uuid}", controller.GetTableByUUID()).Methods("GET")

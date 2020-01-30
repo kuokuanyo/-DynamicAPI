@@ -24,7 +24,7 @@ import (
 //@Param where query array false "被更新的欄位條件"
 //@Success 200 {string} string "Successfully"
 //@Failure 500 {object} models.Error "Internal Server Error"
-//@Router /v1/{sql}/update/{tablename} [put]
+//@Router /v1/{sql}/table/{tablename} [put]
 func (c Controller) UpdateValue() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
